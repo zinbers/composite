@@ -98,7 +98,9 @@ bool QmlOffscreenRenderer::initialize(const QString &qmlUrl)
     m_engine    = new QQmlEngine(this);
     m_component = new QQmlComponent(m_engine, QUrl(qmlUrl), this);
     if (m_component->isLoading()) {
-        // Synchronous load – shouldn't happen for qrc: URLs, but handle it
+        // Component is loading asynchronously (unusual for qrc: URLs but
+        // possible if the URL resolves via a custom QQmlAbstractUrlInterceptor).
+        // Wait synchronously so the rest of initialize() can proceed.
         QObject::connect(m_component, &QQmlComponent::statusChanged,
                          m_component, [](QQmlComponent::Status s) {
                              if (s != QQmlComponent::Ready)

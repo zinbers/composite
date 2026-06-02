@@ -82,7 +82,7 @@ The consumer detects the producer's shutdown flag and reverts to the red placeho
 If you have no GPU, install the Mesa software renderer:
 
 ```bash
-sudo apt install libgl1-mesa-swx11   # or mesa-utils
+sudo apt install mesa-utils libgl1-mesa-dri
 ```
 
 Then run:

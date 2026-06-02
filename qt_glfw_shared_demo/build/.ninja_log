@@ -19,3 +19,13 @@
 1013	2478	1780402650815558951	producer_qt/CMakeFiles/producer_qt.dir/src/main.cpp.o	fb47957ddae86974
 1013	3457	1780402650816931687	producer_qt/CMakeFiles/producer_qt.dir/src/qml_offscreen_renderer.cpp.o	5ed8cf9667583f28
 3457	3839	1780402653259526998	producer_qt/producer_qt	a8adfa946415a675
+4	118	1780402773645961512	common/CMakeFiles/common.dir/src/ipc_bridge_linux.cpp.o	6207ace9c928c5bc
+118	208	1780402773759960022	common/libcommon.a	3ed48d5e6ec250c8
+208	220	1780402773850958833	producer_qt/producer_qt_autogen/timestamp	d0259dc2ec3c6f5f
+208	220	1780402773850958833	producer_qt/producer_qt_autogen/mocs_compilation.cpp	d0259dc2ec3c6f5f
+208	220	1780402773850958833	/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/producer_qt_autogen/timestamp	d0259dc2ec3c6f5f
+208	220	1780402773850958833	/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/producer_qt_autogen/mocs_compilation.cpp	d0259dc2ec3c6f5f
+5	245	1780402773646961499	consumer_glfw/CMakeFiles/consumer_glfw.dir/src/main.cpp.o	a4d063b7f133d59f
+245	319	1780402773886958363	consumer_glfw/consumer_glfw	63c5b91a5eef8f1c
+220	2340	1780402773861958690	producer_qt/CMakeFiles/producer_qt.dir/src/qml_offscreen_renderer.cpp.o	5ed8cf9667583f28
+2340	2706	1780402775981930949	producer_qt/producer_qt	a8adfa946415a675

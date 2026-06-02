@@ -123,7 +123,9 @@ int main()
         int newW = 0, newH = 0;
 
         if (qtConnected) {
-            if (receiver.pollFrame(0)) { // non-blocking
+            // Use a 1 ms timeout so we don't busy-spin while still picking up
+            // frames faster than the VSync interval allows.
+            if (receiver.pollFrame(1)) {
                 uint64_t fid = receiver.frameId();
                 if (fid != lastFrameId) {
                     lastFrameId = fid;

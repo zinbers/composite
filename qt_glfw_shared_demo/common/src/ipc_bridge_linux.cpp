@@ -215,6 +215,10 @@ void IpcBridge::publishFrame(const uint8_t *pixels, uint32_t width, uint32_t hei
     uint32_t writeBuf = 1u - (hdr->writeBuffer & 1u);
 
     const size_t sz = static_cast<size_t>(width) * height * CHANNELS;
+    if (sz > PIXEL_BUF_SIZE) {
+        LOG_WARN("publishFrame: frame (%ux%u) exceeds buffer – truncating",
+                 width, height);
+    }
     std::memcpy(m_impl->pixelBuffer(static_cast<int>(writeBuf)), pixels,
                 sz < PIXEL_BUF_SIZE ? sz : PIXEL_BUF_SIZE);
 
