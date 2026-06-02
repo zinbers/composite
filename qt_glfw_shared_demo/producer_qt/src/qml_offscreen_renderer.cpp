@@ -14,6 +14,14 @@
 
 #include "log.h"
 
+// ─── setExternalRenderTextures ───────────────────────────────────────────────
+void QmlOffscreenRenderer::setExternalRenderTextures(const unsigned int texIds[2])
+{
+    m_useExtTex  = true;
+    m_extTex[0]  = texIds[0];
+    m_extTex[1]  = texIds[1];
+}
+
 // ─── Ctor / Dtor ─────────────────────────────────────────────────────────────
 QmlOffscreenRenderer::QmlOffscreenRenderer(int width, int height, QObject *parent)
     : QObject(parent), m_width(width), m_height(height)
@@ -90,9 +98,7 @@ bool QmlOffscreenRenderer::initialize(const QString &qmlUrl)
     // GL texture + readback FBO
     if (!createResources()) return false;
 
-    // Tell Qt Quick to render into our texture
-    m_quickWindow->setRenderTarget(
-        QQuickRenderTarget::fromOpenGLTexture(m_colorTex, QSize(m_width, m_height)));
+    // Set initial render target (will be updated each frame in DMA-BUF mode)
 
     // Load QML
     m_engine    = new QQmlEngine(this);
@@ -136,7 +142,30 @@ bool QmlOffscreenRenderer::createResources()
 {
     auto *f = m_glCtx->functions();
 
-    // Colour texture – Qt will render into this
+    if (m_useExtTex) {
+        // External DMA-BUF textures: just create one FBO per slot pointing to
+        // the caller-provided textures (no separate colour allocation).
+        f->glGenFramebuffers(2, m_extFbo);
+        for (int i = 0; i < 2; ++i) {
+            f->glBindFramebuffer(GL_FRAMEBUFFER, m_extFbo[i]);
+            f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
+                                       GL_TEXTURE_2D, m_extTex[i], 0);
+            GLenum status = f->glCheckFramebufferStatus(GL_FRAMEBUFFER);
+            if (status != GL_FRAMEBUFFER_COMPLETE) {
+                LOG_ERROR("QmlOffscreenRenderer: ext FBO[%d] incomplete "
+                          "(status=0x%x)", i, static_cast<unsigned>(status));
+                f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+                return false;
+            }
+        }
+        f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+        // Use slot 0 as the initial render target
+        m_colorTex = m_extTex[0];
+        m_readFbo  = m_extFbo[0];
+        return true;
+    }
+
+    // ── Default path: allocate internal texture + readback FBO ───────────────
     f->glGenTextures(1, &m_colorTex);
     f->glBindTexture(GL_TEXTURE_2D, m_colorTex);
     f->glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA8, m_width, m_height,
@@ -145,7 +174,6 @@ bool QmlOffscreenRenderer::createResources()
     f->glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
     f->glBindTexture(GL_TEXTURE_2D, 0);
 
-    // Readback FBO – attaches the same texture so we can call glReadPixels
     f->glGenFramebuffers(1, &m_readFbo);
     f->glBindFramebuffer(GL_FRAMEBUFFER, m_readFbo);
     f->glFramebufferTexture2D(GL_FRAMEBUFFER, GL_COLOR_ATTACHMENT0,
@@ -165,6 +193,17 @@ void QmlOffscreenRenderer::destroyResources()
 {
     if (!m_glCtx) return;
     auto *f = m_glCtx->functions();
+
+    if (m_useExtTex) {
+        // Only delete the FBO wrappers; the caller owns the actual textures.
+        for (int i = 0; i < 2; ++i) {
+            if (m_extFbo[i]) { f->glDeleteFramebuffers(1, &m_extFbo[i]); m_extFbo[i] = 0; }
+        }
+        m_colorTex = 0;
+        m_readFbo  = 0;
+        return;
+    }
+
     if (m_readFbo)  { f->glDeleteFramebuffers(1, &m_readFbo);  m_readFbo  = 0; }
     if (m_colorTex) { f->glDeleteTextures(1,    &m_colorTex);  m_colorTex = 0; }
 }
@@ -180,6 +219,18 @@ bool QmlOffscreenRenderer::renderFrame()
         return false;
     }
 
+    if (m_useExtTex) {
+        // Alternate to the next slot so the consumer can keep reading the
+        // previous one while we write the new one (double-buffering).
+        m_activeSlot = 1 - m_activeSlot;
+        m_colorTex   = m_extTex[m_activeSlot];
+        m_readFbo    = m_extFbo[m_activeSlot];
+    }
+
+    // Point Qt Quick at the current render target texture
+    m_quickWindow->setRenderTarget(
+        QQuickRenderTarget::fromOpenGLTexture(m_colorTex, QSize(m_width, m_height)));
+
     // Qt6 render sequence
     m_renderControl->polishItems();
     m_renderControl->beginFrame();
@@ -187,15 +238,17 @@ bool QmlOffscreenRenderer::renderFrame()
     m_renderControl->render();
     m_renderControl->endFrame();
 
-    // Ensure all GL commands are complete before readback
+    // Ensure all GL commands are complete
     auto *f = m_glCtx->functions();
     f->glFinish();
 
-    // Readback: bind our FBO (colour attachment = m_colorTex) and read pixels
-    f->glBindFramebuffer(GL_FRAMEBUFFER, m_readFbo);
-    f->glReadPixels(0, 0, m_width, m_height,
-                    GL_RGBA, GL_UNSIGNED_BYTE, m_pixels.data());
-    f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    if (!m_useExtTex) {
+        // Pixel readback path (legacy / pixel-copy IPC)
+        f->glBindFramebuffer(GL_FRAMEBUFFER, m_readFbo);
+        f->glReadPixels(0, 0, m_width, m_height,
+                        GL_RGBA, GL_UNSIGNED_BYTE, m_pixels.data());
+        f->glBindFramebuffer(GL_FRAMEBUFFER, 0);
+    }
 
     emit frameReady();
     return true;

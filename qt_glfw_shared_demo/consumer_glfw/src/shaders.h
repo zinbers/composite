@@ -35,8 +35,9 @@ void main() {
 
 // ─── Qt overlay ───────────────────────────────────────────────────────────────
 //  Drawn on the top-right corner quad.
-//  • When Qt is connected: samples the shared texture (Y-flipped, because
-//    glReadPixels returns origin at bottom-left).
+//  • When Qt is connected: samples the shared texture.
+//    uFlipY = 1  → pixel-copy path (glReadPixels, bottom-row first): flip Y.
+//    uFlipY = 0  → DMA-BUF path  (GPU-native orientation): no flip.
 //  • When Qt is disconnected: pulsing red "source lost" placeholder.
 inline constexpr const char *FRAG_QT_OVERLAY = R"GLSL(
 #version 410 core
@@ -45,15 +46,17 @@ out vec4 fragColor;
 uniform sampler2D uTexture;
 uniform bool      uDisconnected;
 uniform float     uTime;
+uniform bool      uFlipY;
 void main() {
     if (uDisconnected) {
         float pulse = 0.35 + 0.25 * sin(uTime * 4.0);
         fragColor = vec4(0.65, 0.05, 0.05, pulse);
     } else {
-        // glReadPixels stores rows bottom-to-top → flip Y
-        vec2  coord = vec2(vTexCoord.x, 1.0 - vTexCoord.y);
-        vec4  texel = texture(uTexture, coord);
-        fragColor   = texel;
+        vec2 coord = uFlipY
+            ? vec2(vTexCoord.x, 1.0 - vTexCoord.y)  // pixel-copy: flip Y
+            : vTexCoord;                               // DMA-BUF: no flip
+        vec4 texel = texture(uTexture, coord);
+        fragColor  = texel;
     }
 }
 )GLSL";

@@ -197,7 +197,6 @@ void Compositor::renderFrame(float t, bool qtConnected,
     glBindVertexArray(0);
 
     // ── 2. Qt overlay (top-right quadrant) ───────────────────────────────────
-    // Show overlay when: disconnected (placeholder) OR at least one frame received
     const bool showOverlay = !qtConnected || m_hasQtFrame;
     if (showOverlay) {
         glUseProgram(m_progOverlay);
@@ -205,9 +204,50 @@ void Compositor::renderFrame(float t, bool qtConnected,
                     qtConnected ? 0 : 1);
         glUniform1f(glGetUniformLocation(m_progOverlay, "uTime"), t);
         glUniform1i(glGetUniformLocation(m_progOverlay, "uTexture"), 0);
+        glUniform1i(glGetUniformLocation(m_progOverlay, "uFlipY"), 1); // pixel-copy path needs flip
 
         glActiveTexture(GL_TEXTURE0);
         glBindTexture(GL_TEXTURE_2D, m_qtTex);
+
+        glBindVertexArray(m_vaoCorner);
+        glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+        glBindVertexArray(0);
+
+        glBindTexture(GL_TEXTURE_2D, 0);
+    }
+}
+
+// ─── renderFrameWithExtTex ───────────────────────────────────────────────────
+void Compositor::renderFrameWithExtTex(float t, bool qtConnected,
+                                       unsigned int extTexId, bool hasFrame,
+                                       bool flipY)
+{
+    if (!m_initialized) return;
+
+    glViewport(0, 0, m_winW, m_winH);
+    glClearColor(0.f, 0.f, 0.f, 1.f);
+    glClear(GL_COLOR_BUFFER_BIT);
+
+    // ── 1. Animated background ───────────────────────────────────────────────
+    glUseProgram(m_progBg);
+    glUniform1f(glGetUniformLocation(m_progBg, "uTime"), t);
+    glBindVertexArray(m_vaoFull);
+    glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);
+    glBindVertexArray(0);
+
+    // ── 2. Qt DMA-BUF overlay (top-right quadrant) ───────────────────────────
+    const bool showOverlay = !qtConnected || hasFrame;
+    if (showOverlay) {
+        glUseProgram(m_progOverlay);
+        glUniform1i(glGetUniformLocation(m_progOverlay, "uDisconnected"),
+                    qtConnected ? 0 : 1);
+        glUniform1f(glGetUniformLocation(m_progOverlay, "uTime"), t);
+        glUniform1i(glGetUniformLocation(m_progOverlay, "uTexture"), 0);
+        glUniform1i(glGetUniformLocation(m_progOverlay, "uFlipY"), flipY ? 1 : 0);
+
+        glActiveTexture(GL_TEXTURE0);
+        glBindTexture(GL_TEXTURE_2D,
+                      (qtConnected && extTexId) ? extTexId : m_qtTex);
 
         glBindVertexArray(m_vaoCorner);
         glDrawElements(GL_TRIANGLES, 6, GL_UNSIGNED_INT, nullptr);

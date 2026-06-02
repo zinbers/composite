@@ -17,13 +17,23 @@ public:
     // Call once after the GL context is current.
     bool initialize(int windowWidth, int windowHeight);
 
-    // Call every frame.
+    // Call every frame (pixel-copy / legacy path).
     //   timeSeconds  – seconds since start (drives animation)
     //   qtConnected  – whether a live producer is attached
     //   qtPixels     – new pixel data to upload (may be nullptr if no new frame)
     //   qtW / qtH    – dimensions of qtPixels
     void renderFrame(float timeSeconds, bool qtConnected,
                      const uint8_t *qtPixels, int qtW, int qtH);
+
+    // Zero-copy DMA-BUF path: the caller provides a GL texture ID that was
+    // imported from a DMA-BUF via EglDmaBufImporter.  No pixel upload occurs.
+    //   extTexId    – GL texture ID (0 = no texture yet)
+    //   hasFrame    – true once at least one frame has been received
+    //   flipY       – false for DMA-BUF textures (GPU-native top-origin);
+    //                 true when using the pixel-copy path (glReadPixels flips)
+    void renderFrameWithExtTex(float timeSeconds, bool qtConnected,
+                                unsigned int extTexId, bool hasFrame,
+                                bool flipY = false);
 
     // Call on window resize.
     void resize(int w, int h);

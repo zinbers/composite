@@ -37,6 +37,18 @@ public:
     int width()  const { return m_width;  }
     int height() const { return m_height; }
 
+    // ── DMA-BUF / external render target ─────────────────────────────────────
+    // When the caller provides external GL textures (e.g. DMA-BUF backed), Qt
+    // renders into those instead of creating its own.  Must be called before
+    // initialize().  texIds must point to an array of 2 valid GL texture objects
+    // that were allocated with the same dimensions and GL_RGBA8 format.
+    // After a successful initialize() the active slot index is advanced by
+    // renderFrame() and exposed via activeSlot().
+    void setExternalRenderTextures(const unsigned int texIds[2]);
+
+    // Index (0 or 1) of the texture slot Qt rendered into most recently.
+    int  activeSlot() const { return m_activeSlot; }
+
 signals:
     void frameReady();
 
@@ -60,8 +72,14 @@ private:
     QQmlComponent       *m_component     = nullptr;
     QQuickItem          *m_rootItem      = nullptr;
 
-    unsigned int m_colorTex  = 0; // GL texture Qt renders into
+    unsigned int m_colorTex  = 0; // GL texture Qt renders into (slot 0 in DMA-BUF mode)
     unsigned int m_readFbo   = 0; // FBO used only for glReadPixels
+
+    // External render targets (DMA-BUF mode): both slots + the write FBO
+    bool         m_useExtTex   = false;
+    unsigned int m_extTex[2]   = {0, 0};
+    unsigned int m_extFbo[2]   = {0, 0};
+    int          m_activeSlot  = 0;
 
     std::vector<uint8_t> m_pixels;
 };

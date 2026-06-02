@@ -83,3 +83,58 @@ The producer always writes into the buffer **not** currently pointed to by `head
 ## Compatibility
 
 The consumer validates `magic` and `version` immediately after mapping.  If either field does not match, the consumer logs an error and disconnects.  Handle changes to `version` by bumping the constant in `ipc_protocol.h` in both processes simultaneously.
+
+---
+
+## DMA-BUF Zero-Copy Protocol (`--dmabuf` mode)
+
+The DMA-BUF path eliminates all CPU copies by sharing GPU buffer objects directly between processes via Linux DMA-BUF file descriptors.
+
+### Transport
+
+A **Unix-domain socket** (`SOCK_SEQPACKET`) at path `/tmp/qt_glfw_dmabuf.sock` carries two kinds of messages:
+
+| Condition | Payload |
+|-----------|---------|
+| First frame (`DMABUF_FLAG_NEW_BUF` set) | `DmaBufFrameMsg` + `DMABUF_SLOT_COUNT` (=2) DMA-BUF fds via `SCM_RIGHTS` |
+| Subsequent frames | `DmaBufFrameMsg` only (no fds) |
+| Shutdown (`DMABUF_FLAG_SHUTDOWN` set) | `DmaBufFrameMsg` with `width=height=0` |
+
+`SOCK_SEQPACKET` is used (rather than `SOCK_STREAM`) to preserve message boundaries; each `sendmsg` / `recvmsg` call delivers exactly one `DmaBufFrameMsg`.
+
+### `DmaBufFrameMsg` structure
+
+| Field | Type | Description |
+|-------|------|-------------|
+| `magic` | `uint32_t` | `0x44424600` (`DBF\0`) – validation guard |
+| `version` | `uint32_t` | `1` |
+| `width` | `uint32_t` | Frame width in pixels |
+| `height` | `uint32_t` | Frame height in pixels |
+| `stride` | `uint32_t` | Row stride in bytes |
+| `drm_format` | `uint32_t` | DRM FourCC format code (e.g. `DRM_FMT_ABGR8888`) |
+| `modifier` | `uint64_t` | DRM format modifier (e.g. `DRM_FORMAT_MOD_LINEAR = 0`) |
+| `frame_id` | `uint64_t` | Monotonically increasing counter |
+| `timestamp_ns` | `uint64_t` | `CLOCK_REALTIME` nanoseconds when published |
+| `flags` | `uint32_t` | `DMABUF_FLAG_NEW_BUF` (0x1), `DMABUF_FLAG_SHUTDOWN` (0x2) |
+| `buf_index` | `uint32_t` | Slot index (0 or 1) of the buffer just rendered into |
+
+### Double-buffer slots
+
+Both producer and consumer maintain **two** DMA-BUF slots.  The producer alternates between slot 0 and slot 1 each frame (`buf_index`).  The consumer imports each slot on first use and keeps the EGLImage/GL texture alive for subsequent re-use.
+
+On the first frame the producer sends **both** DMA-BUF file descriptors (one per slot) via `SCM_RIGHTS` in the same `sendmsg` call as the `DmaBufFrameMsg`.  The consumer `dup()`s each received fd and imports it into an `EGLImage` via `eglCreateImageKHR(EGL_LINUX_DMA_BUF_EXT)`.  Subsequent frame messages carry no fds; the consumer simply re-binds the already-imported GL texture identified by `buf_index`.
+
+### Synchronization
+
+The producer calls `glFinish()` before `publishFrame()`.  The Unix socket `sendmsg` / `recvmsg` call provides the necessary CPU-level memory barrier.  The consumer is safe to sample the texture immediately after `recvmsg` returns.
+
+### Y-flip
+
+DMA-BUF imported textures are in GPU-native orientation (top-row first) — **no Y-flip is needed**.  The GLSL shader `uFlipY` uniform is set to `false` in this path.  (The pixel-copy path sets it to `true` because `glReadPixels` returns bottom-row first.)
+
+### Platform requirements
+
+* Linux, Mesa (Wayland/EGL)  
+* Producer: Qt must use EGL backend (`QT_QPA_PLATFORM=wayland`); requires `EGL_MESA_image_dma_buf_export`  
+* Consumer: GLFW must be created with `GLFW_EGL_CONTEXT_API`; requires `EGL_EXT_image_dma_buf_import` and `GL_OES_EGL_image`
+
