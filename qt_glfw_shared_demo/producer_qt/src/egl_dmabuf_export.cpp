@@ -3,6 +3,7 @@
 
 #include <EGL/egl.h>
 #include <EGL/eglext.h>
+#include <unistd.h>
 #include <cstring>
 
 // ─── EGL extension function pointers (loaded once) ───────────────────────────

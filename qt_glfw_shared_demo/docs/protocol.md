@@ -115,7 +115,7 @@ A **Unix-domain socket** (`SOCK_SEQPACKET`) at path `/tmp/qt_glfw_dmabuf.sock` c
 | `modifier` | `uint64_t` | DRM format modifier (e.g. `DRM_FORMAT_MOD_LINEAR = 0`) |
 | `frame_id` | `uint64_t` | Monotonically increasing counter |
 | `timestamp_ns` | `uint64_t` | `CLOCK_REALTIME` nanoseconds when published |
-| `flags` | `uint32_t` | `DMABUF_FLAG_NEW_BUF` (0x1), `DMABUF_FLAG_SHUTDOWN` (0x2) |
+| `flags` | `uint32_t` | `DMABUF_FLAG_SHUTDOWN` (0x1, bit 0), `DMABUF_FLAG_NEW_BUF` (0x2, bit 1) |
 | `buf_index` | `uint32_t` | Slot index (0 or 1) of the buffer just rendered into |
 
 ### Double-buffer slots
