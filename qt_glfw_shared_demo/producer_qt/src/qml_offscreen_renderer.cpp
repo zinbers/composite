@@ -46,9 +46,15 @@ QmlOffscreenRenderer::~QmlOffscreenRenderer()
     delete m_surface;m_surface = nullptr;
 }
 
-// ─── initialize ──────────────────────────────────────────────────────────────
-bool QmlOffscreenRenderer::initialize(const QString &qmlUrl)
+// ─── initGLContext ────────────────────────────────────────────────────────────
+// Creates the off-screen surface and OpenGL context; leaves the context
+// current.  This is the first step of the DMA-BUF two-phase init.  Callers
+// that just want the single-step path use initialize() directly (which calls
+// this internally if the context has not been set up yet).
+bool QmlOffscreenRenderer::initGLContext()
 {
+    if (m_glCtx) return true; // already done
+
     // Surface format – must match what GLFW consumer uses (OpenGL 4.1 Core)
     QSurfaceFormat fmt;
     fmt.setDepthBufferSize(24);
@@ -77,6 +83,14 @@ bool QmlOffscreenRenderer::initialize(const QString &qmlUrl)
         LOG_ERROR("QmlOffscreenRenderer: makeCurrent failed");
         return false;
     }
+    return true;
+}
+
+// ─── initialize ──────────────────────────────────────────────────────────────
+bool QmlOffscreenRenderer::initialize(const QString &qmlUrl)
+{
+    // Set up the GL context + surface if not already done (single-step path).
+    if (!initGLContext()) return false;
 
     // QQuickRenderControl + headless QQuickWindow
     m_renderControl = new QQuickRenderControl(this);
@@ -97,8 +111,6 @@ bool QmlOffscreenRenderer::initialize(const QString &qmlUrl)
 
     // GL texture + readback FBO
     if (!createResources()) return false;
-
-    // Set initial render target (will be updated each frame in DMA-BUF mode)
 
     // Load QML
     m_engine    = new QQmlEngine(this);

@@ -78,22 +78,23 @@ int main(int argc, char *argv[])
     DmaBufQtPublisher dmaBufPub;
 
     if (useDmaBuf) {
-        // Pre-allocate two GL textures that will be wrapped in EGLImages.
-        // We must do this after the renderer has created its GL context.
-        if (!renderer.initialize(QStringLiteral("qrc:/qml/Main.qml"))) {
-            LOG_ERROR("producer_qt: failed to init QML renderer");
+        // Phase 1: create the GL context only (context will be current after this).
+        if (!renderer.initGLContext()) {
+            LOG_ERROR("producer_qt: failed to create GL context");
             return 1;
         }
 
-        // The renderer now has a valid GL context; grab its EGL handle.
-        // We need the context current to create the textures.
-        auto *glCtx = QOpenGLContext::currentContext();
-        if (!glCtx) {
-            LOG_ERROR("producer_qt: no current GL context after renderer init");
+        auto *glCtx = renderer.glContext();
+        void *eglDpy = qtEglDisplay(glCtx);
+        void *eglCtx = qtEglContext(glCtx);
+        if (!eglDpy || !eglCtx) {
+            LOG_ERROR("producer_qt: could not obtain EGL display/context "
+                      "(is Qt using EGL? try --dmabuf on Wayland)");
             return 1;
         }
 
-        // Allocate two DMA-BUF compatible textures (GL_RGBA8, linear).
+        // Phase 2: allocate two DMA-BUF compatible GL textures while the
+        // context is current.
         unsigned int texIds[2] = {0, 0};
         {
             auto *f = glCtx->functions();
@@ -108,15 +109,11 @@ int main(int argc, char *argv[])
             }
         }
 
-        // Tell the renderer to use the two external DMA-BUF textures instead
-        // of allocating its own.
+        // Phase 3: tell the renderer to use the external DMA-BUF textures, then
+        // finish the full initialization (loads QML, creates FBOs).
         renderer.setExternalRenderTextures(texIds);
-
-        void *eglDpy = qtEglDisplay(glCtx);
-        void *eglCtx = qtEglContext(glCtx);
-        if (!eglDpy || !eglCtx) {
-            LOG_ERROR("producer_qt: could not obtain EGL display/context "
-                      "(is Qt using EGL? try --dmabuf on Wayland)");
+        if (!renderer.initialize(QStringLiteral("qrc:/qml/Main.qml"))) {
+            LOG_ERROR("producer_qt: failed to init QML renderer");
             return 1;
         }
 

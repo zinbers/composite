@@ -28,7 +28,19 @@ public:
     ~QmlOffscreenRenderer() override;
 
     // Load and initialise the QML scene. Must be called once before renderFrame().
+    // If initGLContext() was already called this skips context creation and
+    // proceeds directly to QML setup.
     bool initialize(const QString &qmlUrl);
+
+    // ── DMA-BUF helper: two-phase init ───────────────────────────────────────
+    // Creates the OpenGL context and off-screen surface without loading any QML
+    // or creating GL resources.  Call this first, then allocate your textures
+    // (the context is current after this call), then call
+    // setExternalRenderTextures(), and finally initialize().
+    bool initGLContext();
+
+    // Returns the Qt OpenGL context (valid after initGLContext() or initialize()).
+    QOpenGLContext *glContext() const { return m_glCtx; }
 
     // Drive one render cycle. Returns true when new pixels were produced.
     bool renderFrame();
@@ -39,11 +51,11 @@ public:
 
     // ── DMA-BUF / external render target ─────────────────────────────────────
     // When the caller provides external GL textures (e.g. DMA-BUF backed), Qt
-    // renders into those instead of creating its own.  Must be called before
-    // initialize().  texIds must point to an array of 2 valid GL texture objects
-    // that were allocated with the same dimensions and GL_RGBA8 format.
-    // After a successful initialize() the active slot index is advanced by
-    // renderFrame() and exposed via activeSlot().
+    // renders into those instead of creating its own.  Must be called after
+    // initGLContext() but before initialize().  texIds must point to an array of
+    // 2 valid GL texture objects that were allocated with the same dimensions and
+    // GL_RGBA8 format.  After a successful initialize() the active slot index is
+    // advanced by renderFrame() and exposed via activeSlot().
     void setExternalRenderTextures(const unsigned int texIds[2]);
 
     // Index (0 or 1) of the texture slot Qt rendered into most recently.

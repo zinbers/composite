@@ -106,7 +106,7 @@ A **Unix-domain socket** (`SOCK_SEQPACKET`) at path `/tmp/qt_glfw_dmabuf.sock` c
 
 | Field | Type | Description |
 |-------|------|-------------|
-| `magic` | `uint32_t` | `0x44424600` (`DBF\0`) – validation guard |
+| `magic` | `uint32_t` | `0x44424246` (`DBBF`) – validation guard |
 | `version` | `uint32_t` | `1` |
 | `width` | `uint32_t` | Frame width in pixels |
 | `height` | `uint32_t` | Frame height in pixels |
