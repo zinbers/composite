@@ -1,0 +1,6 @@
+<RCC>
+  <qresource prefix="/">
+    <file alias="qml/Main.qml">/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/producer_qt/qml/Main.qml</file>
+  </qresource>
+</RCC>
+

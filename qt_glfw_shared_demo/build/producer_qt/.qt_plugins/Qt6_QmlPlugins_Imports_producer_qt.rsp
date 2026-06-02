@@ -1,0 +1,11 @@
+-rootPath
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/producer_qt
+-cmake-output
+-output-file
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/.qt_plugins/Qt6_QmlPlugins_Imports_producer_qt.cmake
+-importPath
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt
+-importPath
+/usr/lib/x86_64-linux-gnu/qt6/qml
+-qrcFiles
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/.rcc/qml_res.qrc

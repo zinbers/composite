@@ -1,0 +1,15 @@
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/CMakeFiles/edit_cache.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/CMakeFiles/rebuild_cache.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/common/CMakeFiles/common.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/common/CMakeFiles/edit_cache.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/common/CMakeFiles/rebuild_cache.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/CMakeFiles/producer_qt.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/CMakeFiles/producer_qt_other_files.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/CMakeFiles/producer_qt_qmlimportscan.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/CMakeFiles/edit_cache.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/CMakeFiles/rebuild_cache.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/CMakeFiles/producer_qt_autogen_timestamp_deps.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/producer_qt/CMakeFiles/producer_qt_autogen.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/consumer_glfw/CMakeFiles/consumer_glfw.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/consumer_glfw/CMakeFiles/edit_cache.dir
+/tmp/workspace/zinbers/composite/qt_glfw_shared_demo/build/consumer_glfw/CMakeFiles/rebuild_cache.dir
