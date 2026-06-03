@@ -134,7 +134,7 @@ DMA-BUF imported textures are in GPU-native orientation (top-row first) — **no
 
 ### Platform requirements
 
-* Linux, Mesa (Wayland/EGL)  
-* Producer: Qt must use EGL backend (`QT_QPA_PLATFORM=wayland`); requires `EGL_MESA_image_dma_buf_export`  
+* Linux, Mesa (X11/EGL or Wayland/EGL)
+* Producer: Qt must use EGL backend on X11 — set `QT_XCB_GL_INTEGRATION=xcb_egl`; requires `EGL_MESA_image_dma_buf_export`
 * Consumer: GLFW must be created with `GLFW_EGL_CONTEXT_API`; requires `EGL_EXT_image_dma_buf_import` and `GL_OES_EGL_image`
 

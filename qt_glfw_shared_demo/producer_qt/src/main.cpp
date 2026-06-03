@@ -57,8 +57,9 @@ int main(int argc, char *argv[])
     for (int i = 1; i < argc; ++i) {
         if (std::string(argv[i]) == "--dmabuf") {
             useDmaBuf = true;
-            // Force Wayland so Qt uses EGL (needed for EGLImage export)
-            qputenv("QT_QPA_PLATFORM", "wayland");
+            // On X11, force the xcb platform to use EGL instead of GLX,
+            // so Qt obtains an EGLContext (needed for EGLImage/DMA-BUF export).
+            qputenv("QT_XCB_GL_INTEGRATION", "xcb_egl");
             LOG_INFO("producer_qt: DMA-BUF zero-copy mode enabled");
         }
     }
@@ -89,7 +90,8 @@ int main(int argc, char *argv[])
         void *eglCtx = qtEglContext(glCtx);
         if (!eglDpy || !eglCtx) {
             LOG_ERROR("producer_qt: could not obtain EGL display/context "
-                      "(is Qt using EGL? try --dmabuf on Wayland)");
+                      "(is Qt using EGL? ensure QT_XCB_GL_INTEGRATION=xcb_egl "
+                      "and libqt6opengl6-dev is installed)");
             return 1;
         }
 

@@ -137,12 +137,15 @@ Set `QSG_RHI_BACKEND=opengl` explicitly before running `producer_qt`.
 
 ---
 
-## 8. Extending to DMA-BUF (next step)
+## 8. DMA-BUF zero-copy path (X11 + EGL)
 
-For zero-copy GPU texture sharing on Linux, replace the `glReadPixels` + shared-memory path with:
+For zero-copy GPU texture sharing on Linux X11, the `--dmabuf` flag switches both processes to EGL:
 
 1. Producer exports the GL texture as a DMA-BUF fd using `EGL_MESA_image_dma_buf_export`.
-2. Pass the fd to the consumer via a Unix-domain socket (`SCM_RIGHTS`).
-3. Consumer imports the fd as an `EGLImage` with `EGL_EXT_image_dma_buf_import` and binds it as a GL texture.
+   Qt is kept on the `xcb` platform but forced to use the EGL GL integration instead of GLX
+   via `QT_XCB_GL_INTEGRATION=xcb_egl` (set automatically by the producer at startup).
+2. The fd is passed to the consumer via a Unix-domain socket (`SCM_RIGHTS`).
+3. Consumer creates its GLFW window with `GLFW_EGL_CONTEXT_API` and imports the fd as an
+   `EGLImage` with `EGL_EXT_image_dma_buf_import`.
 
-This keeps the IPC protocol (semaphores + metadata header) unchanged; only the pixel-transport mechanism changes.
+Required Mesa packages (already pulled in by `libgles2-mesa-dev`):
